@@ -14,12 +14,12 @@
     <!-- Visualization & Content Choices: Key statistics are presented with dynamic counters on the hero slide. The project portfolio features interactive cards that, when clicked, open a modal displaying detailed project information and financial projections (IRR, Multiple, ROI) visualized using Chart.js bar charts. Textual content is structured with clear headings and introductory paragraphs in each section to provide context and guide the user. The design prioritizes readability, clarity, and direct interaction to make complex real estate information easily consumable, now with more dedicated space per content area. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        html, body {
+        html {
             margin: 0;
             padding: 0;
             height: 100%;
             width: 100%;
-            overflow: hidden; /* Control main overflow to simulate slides */
+            /* Removed overflow: hidden from html */
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -28,6 +28,11 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh; /* Ensure body takes full viewport height */
+            overflow-y: auto; /* Allow body to scroll if content overflows */
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%; /* Ensure body takes full height of html */
         }
         .nav-link.active {
             color: #D69E2E;
@@ -41,10 +46,22 @@
         }
         .modal {
             transition: opacity 0.25s ease;
+            opacity: 0; /* Default hidden state for opacity */
+        }
+        .modal.hidden {
+            display: none; /* Hide completely when not in use */
         }
         .modal-content {
             transition: transform 0.25s ease;
+            transform: scale(0.95); /* Default hidden state for scale */
         }
+        .modal:not(.hidden) {
+            opacity: 1; /* Show opacity when not hidden */
+        }
+        .modal:not(.hidden) .modal-content {
+            transform: scale(1); /* Scale up when not hidden */
+        }
+
         .chart-container {
             position: relative;
             width: 100%;
@@ -62,18 +79,18 @@
         .slide-section {
             display: none; /* Hidden by default */
             flex-grow: 1; /* Allows section to fill available space */
-            overflow-y: auto; /* Enable scrolling for content within the slide */
+            /* Removed overflow-y: auto; from here, body handles it */
             padding-top: 2rem; /* Consistent top padding for content */
             padding-bottom: 5rem; /* Increased bottom padding for content above nav buttons */
             box-sizing: border-box;
             width: 100%;
-            min-height: 100%; /* Ensure slide takes full height */
+            /* Removed min-height: 100%; from here, flex-grow handles sizing */
         }
         .slide-section.active {
             display: flex; /* Show active slide as flex column */
             flex-direction: column;
             align-items: center; /* Center content horizontally within the slide */
-            text-align: center; /* Center text within content area */
+            /* Removed text-align: center; from here */
         }
         /* Specific adjustments for hero section to ensure content is centered */
         #hero.slide-section.active {
@@ -646,7 +663,7 @@
                     name: "The Central at 5th Hilton Club",
                     location: "12 East 48th Street, New York, NY",
                     category: "Hospitality Development",
-                    imageUrl: "https://newyorkyimby.com/wp-content/uploads/2021/05/image00013-Copy-777x583.jpeg",
+                    imageUrl: "https://newyorkyimby.com/wp-content/uploads/2011/05/image00013-Copy-777x583.jpeg",
                     description: "A 31-story new ground-up extended-stay hotel tower with 161 guestrooms, featuring a distinctive metallic facade and high-end amenities.",
                     keyAchievements: "Awarded for Commercial Hotels Excellence in Construction. Demonstrated ability to deliver sophisticated hospitality projects in prime Midtown locations.",
                     value: "Approx. $67 Million"
