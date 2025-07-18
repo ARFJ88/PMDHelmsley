@@ -45,21 +45,38 @@
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
         }
         .modal {
-            transition: opacity 0.25s ease;
-            opacity: 0; /* Default hidden state for opacity */
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden; /* Hide completely from screen readers and interaction */
+            transition: opacity 0.25s ease, visibility 0s 0.25s;
         }
-        .modal.hidden {
-            display: none; /* Hide completely when not in use */
+        .modal.active { /* Use .active to show modal */
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+            transition: opacity 0.25s ease; /* No delay for visibility when active */
         }
         .modal-content {
+            background-color: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 48rem; /* Equivalent to max-w-3xl */
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95); /* Initial scale for transition */
             transition: transform 0.25s ease;
-            transform: scale(0.95); /* Default hidden state for scale */
         }
-        .modal:not(.hidden) {
-            opacity: 1; /* Show opacity when not hidden */
-        }
-        .modal:not(.hidden) .modal-content {
-            transform: scale(1); /* Scale up when not hidden */
+        .modal.active .modal-content { /* Scale up when modal is active */
+            transform: scale(1);
         }
 
         .chart-container {
@@ -79,18 +96,15 @@
         .slide-section {
             display: none; /* Hidden by default */
             flex-grow: 1; /* Allows section to fill available space */
-            /* Removed overflow-y: auto; from here, body handles it */
             padding-top: 2rem; /* Consistent top padding for content */
-            padding-bottom: 5rem; /* Increased bottom padding for content above nav buttons */
+            padding-bottom: 10rem; /* Increased bottom padding for content above nav buttons */
             box-sizing: border-box;
             width: 100%;
-            /* Removed min-height: 100%; from here, flex-grow handles sizing */
         }
         .slide-section.active {
             display: flex; /* Show active slide as flex column */
             flex-direction: column;
             align-items: center; /* Center content horizontally within the slide */
-            /* Removed text-align: center; from here */
         }
         /* Specific adjustments for hero section to ensure content is centered */
         #hero.slide-section.active {
@@ -108,7 +122,6 @@
             display: flex;
             flex-direction: column;
             align-items: center; /* Center content horizontally */
-            /* Removed justify-content: center; to allow content to flow from top */
         }
         /* Adjustments for specific sections to remove text-align center if not desired for all content */
         #about .slide-content-container, #strategy .slide-content-container, #team .slide-content-container,
@@ -268,7 +281,7 @@
         /* New: Specific styling for Helmsley Building overview image */
         .helmsley-overview-image-display {
             background-size: 150%; /* Zoom in */
-            background-position: center 105%; /* Adjusted vertical position to show more of the building */
+            background-position: center 350%; /* Adjusted vertical position to show more of the building */
         }
         /* New: Specific styling for Helmsley Building detailed image */
         .helmsley-detailed-image-display {
@@ -301,6 +314,7 @@
             object-fit: cover; /* Cover the area, cropping if necessary */
             border-radius: 0.5rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            pointer-events: none; /* Crucial: Let clicks fall through to parent wrapper */
         }
         .gallery-item-wrapper {
             cursor: pointer;
@@ -308,6 +322,23 @@
         }
         .gallery-item-wrapper:hover {
             transform: translateY(-5px) scale(1.05); /* Added scale on hover */
+        }
+        /* Hero Video Styling */
+        #hero-video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0; /* Behind content */
+            filter: brightness(0.7); /* Darken video for text readability */
+        }
+        #hero-video-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(248,247,244,0.7) 0%, rgba(248,247,244,0.3) 50%, rgba(248,247,244,0) 100%);
+            z-index: 1; /* Above video, below text */
         }
     </style>
 </head>
@@ -339,8 +370,12 @@
     <main class="flex-grow flex flex-col min-h-full">
         <!-- Slide 0: Hero Section -->
         <section id="hero" class="slide-section active relative bg-white overflow-hidden">
-            <img src="https://static.wixstatic.com/media/f9e890_e47207366be94aae971237b95d82ae83~mv2.jpg/v1/crop/x_15,y_33,w_1163,h_479/fill/w_1163,h_477,al_c,q_85,enc_avif,quality_auto/shutterstock_682562731_edited.jpg" alt="New York City Skyline" class="absolute inset-0 w-full h-full object-cover opacity-30">
-            <div class="slide-content-container relative z-10">
+            <!-- Video Background -->
+            <iframe id="hero-video-background" src="https://player.vimeo.com/video/1082337586?autoplay=1&playsinline=1&loop=1&muted=1&title=0&portrait=0&byline=0" frameborder="0" allow="autoplay; fullscreen; picture-in-picture"></iframe>
+            <!-- Overlay for text readability -->
+            <div id="hero-video-overlay"></div>
+
+            <div class="slide-content-container relative z-10 text-center">
                 <p class="text-base font-semibold text-amber-800 tracking-wide uppercase drop-shadow-md">Prime Manhattan Development</p>
                 <h1 class="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 drop-shadow-lg">Unlocking Value in Prime Manhattan Real Estate</h1>
                 <p class="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-gray-700 drop-shadow-md">A partnership opportunity to deploy capital into a high-potential asset, backed by a 115-year legacy of development excellence.</p>
@@ -578,8 +613,8 @@
     </div>
 
     <!-- Modal -->
-    <div id="project-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div id="modal-content" class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto transform scale-95">
+    <div id="project-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50">
+        <div id="modal-content" class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <!-- Modal content will be dynamically inserted here -->
         </div>
     </div>
@@ -596,6 +631,7 @@
                 detailedImageUrl: "https://230parkavenue.com/wp-content/uploads/sites/17/2025/05/230-Park-Helmsley-Bldng.png", // Detailed image
                 videoUrl: "https://player.vimeo.com/video/1082337586?autoplay=1&playsinline=1&color&autopause=0&loop=1&muted=1&title=0&portrait=0&byline=0#t=", // Added video URL
                 description: "A transformative project to reposition the iconic Helmsley Building into a modern, amenity-rich mixed-use complex, totaling approximately 1,200,000 square feet.",
+                overviewText: "The Helmsley Building stands as an <strong>irreplaceable generational asset</strong> at the heart of Park Avenue, a historic and iconic location. This is more than just a redevelopment; it's an opportunity to invest in a piece of Manhattan's enduring legacy, offering unparalleled prestige and long-term value for future buyers and our team.",
                 spaceAllocation: [
                     { type: "Ultra-Luxury High-End Branded Condos", grossSqft: 300000, netSellable: 261450, pricePsf: 5000, totalValue: 1307250000 },
                     { type: "High-End Residential Rentals", grossSqft: 550000, netSellable: 479325, rentPsf: 150, expenseRatio: 35, annualRent: 46734188, capRate: 5.0, totalValue: 934683750 },
@@ -663,7 +699,7 @@
                     name: "The Central at 5th Hilton Club",
                     location: "12 East 48th Street, New York, NY",
                     category: "Hospitality Development",
-                    imageUrl: "https://newyorkyimby.com/wp-content/uploads/2011/05/image00013-Copy-777x583.jpeg",
+                    imageUrl: "https://www.hilton.com/im/en/NYCKPGV/16138138/nyckp-hi-res-exterior.jpg?impolicy=crop&cw=4500&ch=2519&gravity=NorthWest&xposition=0&yposition=240&rw=768&rh=430", // Updated image URL
                     description: "A 31-story new ground-up extended-stay hotel tower with 161 guestrooms, featuring a distinctive metallic facade and high-end amenities.",
                     keyAchievements: "Awarded for Commercial Hotels Excellence in Construction. Demonstrated ability to deliver sophisticated hospitality projects in prime Midtown locations.",
                     value: "Approx. $67 Million"
@@ -678,14 +714,6 @@
                     keyAchievements: "Received 18 different design and building awards, including the BLT Built Design Award. Showcased innovative construction techniques and luxury design.",
                     value: "Undisclosed"
                 }
-            ],
-            galleryImages: [
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_07.jpg", alt: "Helmsley Building Interior", caption: "Step into unparalleled luxury. Our meticulously designed interiors blend historic grandeur with modern sophistication, offering an exclusive experience for discerning tenants and maximizing long-term asset value." },
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_015.jpg", alt: "Helmsley Building Office Space", caption: "Flexible and future-ready workspaces. Designed to foster collaboration and productivity, these premium environments attract top-tier corporate tenants, ensuring stable and growing rental income, and solidifying the building's enduring legacy." },
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530-Fifth-Neighborhood-Image-1.jpg", alt: "Grand Central Proximity", caption: "Unrivaled connectivity at Grand Central. Positioned in the vibrant heart of Midtown, offering seamless access to transportation, top-tier dining, and world-class retail – a prime, historic location driving consistent demand and property appreciation, making it an irreplaceable asset." },
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_09.jpg", alt: "Manhattan's Premier District", caption: "Immerse yourself in Manhattan's premier district. Surrounded by iconic landmarks and high-end retail, the Helmsley Building offers an address of undeniable prestige, commanding premium rents and attracting a high-caliber tenant base, a true piece of history at the center of Park Avenue." },
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_08.jpg", alt: "Urban Green Spaces", caption: "Beyond the office: green spaces and vibrant culture. Enjoy the perfect balance of urban dynamism with serene escapes just steps away, enhancing tenant satisfaction and the building's overall appeal and enduring value as a generational asset." },
-                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_amenities-1024x934.jpg", alt: "Exclusive Amenities", caption: "Exclusive amenities designed for success. From executive lounges to state-of-the-art fitness centers, every detail enhances the tenant experience and strengthens the building's competitive edge, ensuring high occupancy and strong returns, solidifying its position as a premier investment." }
             ]
         };
 
@@ -696,10 +724,11 @@
             const nextBtn = document.getElementById('next-slide');
             let currentSlideIndex = 0;
 
-            const helmsleyOverviewDiv = document.getElementById('helmsley-overview-details');
-            const helmsleyDetailedDiv = document.getElementById('helmsley-project-details');
-            const trackRecordGrid = document.getElementById('track-record-grid');
-            const galleryGrid = document.getElementById('gallery-grid');
+            // Moved element selections inside showSlide or just before render calls for robustness
+            // const helmsleyOverviewDiv = document.getElementById('helmsley-overview-details');
+            // const helmsleyDetailedDiv = document.getElementById('helmsley-project-details');
+            // const trackRecordGrid = document.getElementById('track-record-grid');
+            // const galleryGrid = document.getElementById('gallery-grid');
             const modal = document.getElementById('project-modal');
             const modalContent = document.getElementById('modal-content');
 
@@ -729,6 +758,14 @@
                     animateStat(fundSizeEl, 50, 1500, 'M');
                     animateStat(portfolioValueEl, 2, 1500, '.1B+');
                 }
+                
+                // Get elements just before rendering to ensure they are in the DOM
+                const helmsleyOverviewDiv = document.getElementById('helmsley-overview-details');
+                const helmsleyDetailedDiv = document.getElementById('helmsley-project-details');
+                const trackRecordGrid = document.getElementById('track-record-grid');
+                const galleryGrid = document.getElementById('gallery-grid');
+
+
                 // Render specific project details when their slides are active
                 if (index === 3) { // Helmsley Overview slide
                     renderHelmsleyOverview(helmsleyOverviewDiv, portfolioData.helmsley);
@@ -777,7 +814,7 @@
                     <h3 class="mt-2 text-2xl font-bold text-gray-900">${project.name}</h3>
                     <p class="mt-1 text-gray-500">${project.location}</p>
                     <p class="mt-4 text-lg text-gray-700">
-                        The Helmsley Building stands as an **irreplaceable generational asset** at the heart of Park Avenue, a historic and iconic location. This is more than just a redevelopment; it's an opportunity to invest in a piece of Manhattan's enduring legacy, offering unparalleled prestige and long-term value for future buyers and our team.
+                        ${project.overviewText}
                     </p>
                     <div class="mt-6 border-t pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
                         <div class="p-4 bg-gray-50 rounded-lg text-center">
@@ -891,19 +928,19 @@
                     <div class="mt-6 border-t pt-6">
                         <h4 class="text-lg font-bold text-gray-800 mb-4">Projected Financials</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                            <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.irr}%</div>
                                 <p class="text-sm text-gray-500 font-medium">Levered IRR</p>
                             </div>
-                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                            <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.multiple}x</div>
                                 <p class="text-sm text-gray-500 font-medium">Levered Multiple</p>
                             </div>
-                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                            <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredIRR}%</div>
                                 <p class="text-sm text-gray-500 font-medium">Unlevered IRR</p>
                             </div>
-                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                            <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredMultiple}x</div>
                                 <p class="text-sm text-gray-500 font-medium">Unlevered Multiple</p>
                             </div>
@@ -939,7 +976,8 @@
             };
 
             const renderTrackRecord = (targetGrid, projects) => {
-                if (!targetGrid) {
+                if (!targetGrid || !Array.isArray(projects)) { // Added Array.isArray check
+                    console.error("renderTrackRecord: Invalid targetGrid or projects array.", { targetGrid, projects });
                     return;
                 }
                 targetGrid.innerHTML = ''; // Clear previous content
@@ -949,16 +987,19 @@
             };
 
             const renderGallery = (targetGrid, images) => {
-                if (!targetGrid) {
+                if (!targetGrid || !Array.isArray(images)) { // Added Array.isArray check
+                    console.error("renderGallery: Invalid targetGrid or images array.", { targetGrid, images });
                     return;
                 }
                 targetGrid.innerHTML = ''; // Clear previous content
                 images.forEach(image => {
                     const imgDiv = document.createElement('div');
+                    // Changed to a div that acts as the clickable area for the entire card
                     imgDiv.className = 'gallery-item-wrapper bg-white rounded-lg overflow-hidden card-shadow p-2';
                     imgDiv.innerHTML = `<img src="${image.src}" alt="${image.alt}" class="gallery-image">`;
-                    // Correctly attach the event listener to the imgDiv
-                    imgDiv.addEventListener('click', (e) => { // Added e parameter
+                    
+                    // Attach the event listener to the wrapper div
+                    imgDiv.addEventListener('click', (e) => {
                         e.stopPropagation(); // Prevent event bubbling
                         openModal(image, 'gallery');
                     });
@@ -1024,7 +1065,7 @@
                         </div>
                     `;
                 } else if (type === 'gallery') {
-                    modalInnerHtml = `
+                    modalContent.innerHTML = `
                         <div class="p-6 md:p-8">
                             <div class="flex justify-between items-start">
                                 <div>
@@ -1040,14 +1081,8 @@
                     `;
                 }
                 modalContent.innerHTML = modalInnerHtml;
-                // Ensure modal is visible and transitions correctly
-                modal.classList.remove('hidden');
-                // Force reflow to ensure 'hidden' is removed before 'opacity-0' is removed
-                void modal.offsetWidth; // This forces a reflow
-                setTimeout(() => {
-                    modal.classList.remove('opacity-0');
-                    modalContent.classList.remove('scale-95');
-                }, 10);
+                // Add 'active' class to trigger transitions
+                modal.classList.add('active');
                 
                 if(type === 'project' && data.financials) {
                     renderChart(data); // Render chart only for project modals with financial data
@@ -1057,11 +1092,9 @@
             };
 
             const closeModal = () => {
-                modal.classList.add('opacity-0');
-                modalContent.classList.add('scale-95');
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                }, 250);
+                modal.classList.remove('active'); // Remove 'active' to start fade out
+                // No need for setTimeout here, CSS transition handles it.
+                // The visibility: hidden will be applied after the opacity transition.
             };
 
             modal.addEventListener('click', (e) => {
