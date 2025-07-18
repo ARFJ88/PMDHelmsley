@@ -249,7 +249,7 @@
         /* New: Specific styling for Helmsley Building overview image */
         .helmsley-overview-image-display {
             background-size: 150%; /* Zoom in */
-            background-position: center 95%; /* Adjusted vertical position */
+            background-position: center 105%; /* Adjusted vertical position to show more of the building */
         }
         /* New: Specific styling for Helmsley Building detailed image */
         .helmsley-detailed-image-display {
@@ -509,19 +509,19 @@
                 <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
                     <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
                         <h3 class="text-2xl font-bold text-gray-900">Resilient Demand</h3>
-                        <p class="mt-4 text-lg text-gray-600">Despite economic fluctuations, New York City continues to attract a robust influx of high-net-worth individuals, global corporations, and diverse talent, sustaining demand for luxury residential, prime office, and vibrant retail spaces.</p>
+                        <p class="mt-4 text-lg text-gray-600">New York City consistently attracts a robust influx of high-net-worth individuals, global corporations, and diverse talent, sustaining strong demand across luxury residential, prime office, and vibrant retail sectors. This enduring appeal provides a stable foundation for real estate investments, even amidst broader economic fluctuations.</p>
                     </div>
                     <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
                         <h3 class="text-2xl font-bold text-gray-900">Limited Supply & Value Appreciation</h3>
-                        <p class="mt-4 text-lg text-gray-600">Manhattan's finite land supply and stringent zoning regulations create inherent value appreciation, ensuring that well-executed developments command premium pricing. Our strategic focus allows us to capitalize on this scarcity.</p>
+                        <p class="mt-4 text-lg text-gray-600">Manhattan's finite land supply, coupled with stringent zoning regulations and high construction costs, creates significant barriers to entry for new development. This inherent scarcity ensures that well-executed, high-quality developments like the Helmsley Building command premium pricing and experience consistent value appreciation over time.</p>
                     </div>
                     <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
                         <h3 class="2xl font-bold text-gray-900">Strategic Growth Areas</h3>
-                        <p class="mt-4 text-lg text-gray-600">Specific submarkets continue to experience significant growth and transformation, offering opportunities for repositioning and new development that cater to evolving tenant and resident preferences (e.g., modern office spaces, amenity-rich residential buildings).</p>
+                        <p class="mt-4 text-lg text-gray-600">Specific submarkets within NYC continue to undergo significant transformation and growth, driven by evolving tenant and resident preferences. Areas like Midtown East, where the Helmsley Building is located, are experiencing a resurgence through strategic repositioning and the development of modern, amenity-rich spaces that cater to the demands of today's market.</p>
                     </div>
                     <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
                         <h3 class="text-2xl font-bold text-gray-900">Flight to Quality</h3>
-                        <p class="mt-4 text-lg text-gray-600">In uncertain times, capital tends to flow towards high-quality, well-located assets. PMD's expertise in this segment ensures that our projects meet the highest standards, attracting discerning investors and tenants.</p>
+                        <p class="mt-4 text-lg text-gray-600">In uncertain economic climates, capital reliably flows towards high-quality, well-located, and fundamentally strong assets. The Helmsley Building, with its iconic status, prime location, and planned ultra-luxury repositioning, is perfectly positioned to attract discerning investors and tenants seeking stability and superior returns, making it a safe haven investment.</p>
                     </div>
                 </div>
             </div>
@@ -585,11 +585,13 @@
                     { type: "Amenity Space", grossSqft: 50000, netSellable: 50000 }
                 ],
                 projectCosts: {
-                    acquisitionPrice: 530000000,
+                    acquisitionPrice: 500000000, // Corrected from 530M
+                    acquisitionClosingCosts: 30000000, // Added explicit closing costs
                     hardCosts: 631578947,
                     softCosts: 158722240,
                     financingCosts: 209627346,
-                    totalProjectCost: 1529928534,
+                    // Recalculate totalProjectCost based on new acquisition and added closing costs
+                    totalProjectCost: 500000000 + 30000000 + 631578947 + 158722240 + 209627346,
                     equity: 350409906,
                     debt: 994453547,
                     netCondoSales: 1228815000
@@ -815,6 +817,7 @@
                 let projectCostsHtml = `
                     <ul class="list-disc list-inside text-gray-600 space-y-1">
                         <li>Acquisition Price: <span class="font-semibold">$${(project.projectCosts.acquisitionPrice / 1000000).toLocaleString()}M</span></li>
+                        <li>Acquisition Closing Costs: <span class="font-semibold">$${(project.projectCosts.acquisitionClosingCosts / 1000000).toLocaleString()}M</span></li>
                         <li>Hard Costs: <span class="font-semibold">$${(project.projectCosts.hardCosts / 1000000).toLocaleString()}M</span></li>
                         <li>Soft Costs: <span class="font-semibold">$${(project.projectCosts.softCosts / 1000000).toLocaleString()}M</span></li>
                         <li>Financing Costs: <span class="font-semibold">$${(project.projectCosts.financingCosts / 1000000).toLocaleString()}M</span></li>
@@ -909,7 +912,8 @@
                         <p class="mt-1 text-gray-500">${project.location}</p>
                     </div>
                 `;
-                card.addEventListener('click', () => {
+                card.addEventListener('click', (e) => { // Added e parameter
+                    e.stopPropagation(); // Prevent event bubbling
                     openModal(project, 'project');
                 });
                 return card;
@@ -935,7 +939,8 @@
                     imgDiv.className = 'gallery-item-wrapper bg-white rounded-lg overflow-hidden card-shadow p-2';
                     imgDiv.innerHTML = `<img src="${image.src}" alt="${image.alt}" class="gallery-image">`;
                     // Correctly attach the event listener to the imgDiv
-                    imgDiv.addEventListener('click', () => {
+                    imgDiv.addEventListener('click', (e) => { // Added e parameter
+                        e.stopPropagation(); // Prevent event bubbling
                         openModal(image, 'gallery');
                     });
                     targetGrid.appendChild(imgDiv);
@@ -1018,6 +1023,8 @@
                 modalContent.innerHTML = modalInnerHtml;
                 // Ensure modal is visible and transitions correctly
                 modal.classList.remove('hidden');
+                // Force reflow to ensure 'hidden' is removed before 'opacity-0' is removed
+                void modal.offsetWidth; // This forces a reflow
                 setTimeout(() => {
                     modal.classList.remove('opacity-0');
                     modalContent.classList.remove('scale-95');
