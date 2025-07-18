@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Manhattan Development - Interactive Deck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Sophisticated Neutrals -->
+    <!-- Application Structure Plan: A single-page application where content is organized into distinct, full-viewport sections (slides). Only one section is displayed at a time, controlled by navigation links and previous/next buttons. Each section is vertically scrollable if its content exceeds the viewport height. The "Portfolio" is now split into two dedicated slides: "Pipeline Projects" and "Track Record Projects," each displaying its respective interactive project cards. This structure was chosen for its robustness and reliability in iframe environments, ensuring all content is visible and accessible and accessible without rendering issues, while providing a clear, linear presentation flow like a traditional deck with expanded content. -->
+    <!-- Visualization & Content Choices: Key statistics are presented with dynamic counters on the hero slide. The project portfolio features interactive cards that, when clicked, open a modal displaying detailed project information and financial projections (IRR, Multiple, ROI) visualized using Chart.js bar charts. Textual content is structured with clear headings and introductory paragraphs in each section to provide context and guide the user. The design prioritizes readability, clarity, and direct interaction to make complex real estate information easily consumable, now with more dedicated space per content area. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Control main overflow to simulate slides */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #1A202C;
+            display: flex;
+            flex-direction: column;
+        }
+        .nav-link.active {
+            color: #D69E2E;
+            font-weight: 600;
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        }
+        .card-shadow:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        .modal-content {
+            transition: transform 0.25s ease;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .slide-section {
+            display: none; /* Hidden by default */
+            flex-grow: 1; /* Allows section to fill available space */
+            overflow-y: auto; /* Enable scrolling for content within the slide */
+            padding-top: 2rem; /* Consistent top padding for content */
+            padding-bottom: 2rem; /* Consistent bottom padding for content */
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .slide-section.active {
+            display: flex; /* Show active slide as flex column */
+            flex-direction: column;
+            align-items: center; /* Center content horizontally within the slide */
+            text-align: center; /* Center text within content area */
+        }
+        /* Specific adjustments for hero section to ensure content is centered */
+        #hero.slide-section.active {
+            justify-content: center; /* Vertically center content on the hero slide */
+        }
+        /* Ensure content within slides is properly contained and aligned */
+        .slide-content-container {
+            width: 100%;
+            max-width: 1024px; /* Max width for content readability */
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 1rem; /* Inner padding for content blocks */
+            box-sizing: border-box;
+            min-height: 100%; /* Ensure it stretches to full slide height */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+            /* Removed justify-content: center; to allow content to flow from top */
+        }
+        /* Adjustments for specific sections to remove text-align center if not desired for all content */
+        #about .slide-content-container, #strategy .slide-content-container, #team .slide-content-container,
+        #helmsley-overview .slide-content-container, #helmsley-detailed .slide-content-container,
+        #track-record-projects .slide-content-container, #gallery .slide-content-container, #nyc-market .slide-content-container {
+            text-align: left; /* Default text alignment for these sections */
+        }
+        #about .slide-content-container > div, #strategy dl, #team .grid,
+        #helmsley-overview .grid, #helmsley-detailed .portfolio-grid-wrapper, #track-record-projects .portfolio-grid-wrapper, #gallery .grid {
+            text-align: left; /* Ensure inner content aligns left */
+            width: 100%; /* Ensure these elements take full width of their container */
+        }
+        /* Adjust team section grid alignment */
+        #team .grid {
+            align-items: flex-start;
+        }
+        /* New: Hero section gradient overlay */
+        #hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(248,247,244,0.7) 0%, rgba(248,247,244,0.3) 50%, rgba(248,247,244,0) 100%);
+            z-index: 1;
+        }
+        /* New: Subtle background for F8F7F4 sections */
+        #about, #helmsley-overview, #nyc-market, #gallery {
+            background-color: #F8F7F4;
+            position: relative;
+            overflow: hidden; /* Ensure pattern doesn't bleed */
+        }
+        #about::after, #helmsley-overview::after, #nyc-market::after, #gallery::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #E0E0E0 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        /* New: Subtle shadow for white sections */
+        #strategy, #helmsley-detailed, #track-record-projects, #team {
+            background-color: #FFFFFF;
+            box-shadow: 0 0px 15px rgba(0,0,0,0.05); /* Subtle shadow */
+            position: relative;
+            z-index: 1; /* Ensure shadow is visible */
+        }
+        /* New: Content block backgrounds/borders */
+        #about .bg-white, #strategy dl div.relative, #team .text-center, #nyc-market .grid > div,
+        #helmsley-overview .bg-white, #helmsley-detailed .bg-white, #gallery .grid > div {
+            background-color: rgba(255,255,255,0.7); /* Slightly transparent white for depth */
+            backdrop-filter: blur(2px); /* Subtle blur for background elements */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            border: 1px solid rgba(220,220,220,0.5); /* Subtle border */
+        }
+        /* Specific override for strategy list items, as they are already relative divs */
+        #strategy dl div.relative {
+            background-color: rgba(255,255,255,0.8); /* Slightly more opaque */
+            padding: 1.5rem;
+        }
+        /* Team cards solid white with stronger shadow */
+        #team .text-center {
+            background-color: #FFFFFF;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: none; /* Remove border if it clashes */
+        }
+        /* Contact section specific styling for readability */
+        #contact {
+            background-color: #333333; /* Darker background for contrast */
+            position: relative;
+            overflow: hidden;
+            color: #FFFFFF; /* Ensure text is white */
+        }
+        #contact::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #555555 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        #contact .bg-amber-700\/90 { /* This targets the inner contact box */
+            background-color: rgba(255, 255, 255, 0.1); /* Very subtle overlay */
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(255,255,255,0.2); /* Light border */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            color: #FFFFFF; /* Ensure text is white */
+        }
+        #contact .bg-white\/10 { /* This targets individual contact cards */
+            background-color: rgba(255, 255, 255, 0.15); /* Slightly more opaque for cards */
+            border: 1px solid rgba(255,255,255,0.3); /* Clearer border */
+            box-shadow: none; /* Remove redundant shadow */
+        }
+        #contact a {
+            color: #FBBF24; /* Amber for links */
+            text-decoration: underline;
+        }
+        #contact a:hover {
+            color: #FFFFFF;
+        }
+        /* Specific styling for the 'About' section's integrated content */
+        #about .integrated-content-block {
+            background-color: #F8F7F4; /* Base background */
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-top: 2rem;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05); /* Inner shadow for depth */
+            position: relative;
+            z-index: 1; /* Ensure it's above the pattern */
+        }
+        #about .integrated-content-block::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #E0E0E0 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.15; /* Slightly stronger pattern */
+            z-index: -1;
+            border-radius: 0.5rem;
+        }
+        #about .rinaldi-highlight {
+            background-color: rgba(255,255,255,0.9); /* More opaque white */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08); /* Stronger shadow */
+            border: 1px solid rgba(220,220,220,0.7); /* Clearer border */
+        }
+        /* Ensure portfolio cards are clickable */
+        .portfolio-card {
+            position: relative; /* Ensure z-index works */
+            z-index: 10; /* Higher z-index to ensure clickability */
+            cursor: pointer; /* Explicitly set cursor to pointer */
+        }
+        /* Adjust image fitting for portfolio cards */
+        .portfolio-card .h-48 > div { /* Target the div inside h-48 that has the background image */
+            height: 100%;
+            width: 100%;
+            background-size: cover; /* Default to cover for general photos */
+            background-position: center; /* Center by default */
+            background-repeat: no-repeat;
+            background-color: #f0f0f0; /* Light background to fill empty space */
+        }
+        /* Specific override for 661 Lexington Ave to show upper parts */
+        .portfolio-card[data-id="lex661"] .h-48 > div {
+            background-position: top; /* Prioritize top of the image */
+            background-size: cover; /* Ensure it covers the area */
+        }
+        /* Specific override for 55th St massing to ensure aspect ratio is maintained and is narrower */
+        .portfolio-card[data-id="w55"] .h-48 > div {
+            background-size: 70% auto; /* Make image 70% width, auto height to maintain aspect ratio */
+            background-color: #FFFFFF; /* White background for massing diagram */
+            background-position: center; /* Center the contained image */
+        }
+        /* New: Specific styling for Helmsley Building overview image */
+        .helmsley-overview-image-display {
+            background-size: 150%; /* Zoom in */
+            background-position: center 95%; /* Adjusted vertical position */
+        }
+        /* New: Specific styling for Helmsley Building detailed image */
+        .helmsley-detailed-image-display {
+            background-size: cover; /* Cover the area */
+            background-position: center; /* Center the image */
+        }
+        /* Responsive video container */
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.5rem; /* Match card styling */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* Match card styling */
+            margin-bottom: 1.5rem; /* Spacing below video */
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        /* Gallery image styling */
+        .gallery-image {
+            width: 100%;
+            height: 250px; /* Fixed height for consistency in grid */
+            object-fit: cover; /* Cover the area, cropping if necessary */
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+        .gallery-item-wrapper {
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .gallery-item-wrapper:hover {
+            transform: translateY(-5px) scale(1.05); /* Added scale on hover */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header / Navigation -->
+    <header id="header" class="bg-white/80 backdrop-blur-lg sticky top-0 z-40 w-full border-b border-gray-200/80">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <a href="#" class="text-xl font-bold text-gray-800">Prime Manhattan Development</a>
+                </div>
+                <nav class="hidden md:flex md:space-x-8">
+                    <a href="#" data-slide-index="0" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Home</a>
+                    <a href="#" data-slide-index="1" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">About PMD</a>
+                    <a href="#" data-slide-index="2" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Strategy</a>
+                    <a href="#" data-slide-index="3" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Helmsley Overview</a>
+                    <a href="#" data-slide-index="4" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Helmsley Details</a>
+                    <a href="#" data-slide-index="5" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Track Record</a>
+                    <a href="#" data-slide-index="6" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Gallery</a>
+                    <a href="#" data-slide-index="7" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Team</a>
+                    <a href="#" data-slide-index="8" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">NYC Market</a>
+                    <a href="#" data-slide-index="9" class="nav-link text-gray-500 hover:text-gray-900 transition-colors">Contact</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col">
+        <!-- Slide 0: Hero Section -->
+        <section id="hero" class="slide-section active relative bg-white overflow-hidden">
+            <img src="https://static.wixstatic.com/media/f9e890_e47207366be94aae971237b95d82ae83~mv2.jpg/v1/crop/x_15,y_33,w_1163,h_479/fill/w_1163,h_477,al_c,q_85,enc_avif,quality_auto/shutterstock_682562731_edited.jpg" alt="New York City Skyline" class="absolute inset-0 w-full h-full object-cover opacity-30">
+            <div class="slide-content-container relative z-10">
+                <p class="text-base font-semibold text-amber-800 tracking-wide uppercase drop-shadow-md">Prime Manhattan Development</p>
+                <h1 class="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 drop-shadow-lg">Unlocking Value in Prime Manhattan Real Estate</h1>
+                <p class="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-gray-700 drop-shadow-md">A partnership opportunity to deploy capital into a high-potential asset, backed by a 115-year legacy of development excellence.</p>
+                
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    <div class="p-6 bg-amber-50/70 rounded-lg backdrop-blur-sm">
+                        <div id="stat-legacy" class="text-4xl font-bold text-amber-700">115</div>
+                        <p class="mt-2 text-lg font-medium text-gray-700">Year Family Legacy</p>
+                    </div>
+                    <div class="p-6 bg-amber-50/70 rounded-lg backdrop-blur-sm">
+                        <div id="stat-fund-size" class="text-4xl font-bold text-amber-700">$50M</div>
+                        <p class="mt-2 text-lg font-medium text-gray-700">Target Capital Deployment</p>
+                    </div>
+                    <div class="p-6 bg-amber-50/70 rounded-lg backdrop-blur-sm">
+                        <div id="stat-portfolio-value" class="text-4xl font-bold text-amber-700">$2.1B+</div>
+                        <p class="mt-2 text-lg font-medium text-gray-700">Partner Construction Value</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 1: About Section -->
+        <section id="about" class="slide-section bg-F8F7F4">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Our Legacy & Integrated Vision</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">PMD combines a rich 115-year history in New York City real estate with the modern, in-house construction capabilities of The Rinaldi Group to create unparalleled value.</p>
+                </div>
+                <div class="integrated-content-block mt-16">
+                    <h3 class="text-2xl font-bold text-gray-900">A Legacy of Foresight</h3>
+                    <p class="mt-4 text-lg text-gray-600">The Shapolsky family's involvement in NYC real estate spans over a century. This multi-generational experience provides an unparalleled understanding of market cycles and long-term value creation. Our pioneering history includes being among the first to establish co-ops in Soho and once holding the title of the largest landlord on the Lower East Side, demonstrating our foresight in emerging and iconic neighborhoods.</p>
+                    
+                    <div class="rinaldi-highlight">
+                        <h3 class="text-2xl font-bold text-gray-900">The Rinaldi Group: Construction Excellence</h3>
+                        <p class="mt-4 text-lg text-gray-600">Our partnership with The Rinaldi Group, an award-winning firm with over 30 years of experience, provides an in-house construction arm that ensures quality, efficiency, and cost control. This integration of development and construction is our key competitive advantage, de-risking projects and guaranteeing execution excellence.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 2: Investment Strategy Section -->
+        <section id="strategy" class="slide-section bg-white">
+            <div class="slide-content-container">
+                <div class="lg:text-center">
+                    <p class="text-base text-amber-600 font-semibold tracking-wide uppercase">Our Approach</p>
+                    <h2 class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">A Strategy Built for Manhattan</h2>
+                    <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">We focus on opportunistic and value-add strategies, leveraging our unique sourcing edge and ensuring our interests are perfectly aligned with our partners.</p>
+                </div>
+
+                <div class="mt-12">
+                    <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
+                        <div class="relative bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                            <dt>
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-amber-600 text-white">
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                </div>
+                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Targeted Asset Classes</p>
+                            </dt>
+                            <dd class="mt-2 ml-16 text-base text-gray-500">We target luxury residential, Class A/B office for repositioning, high-street retail, and complex mixed-use developments to create a diversified, high-potential portfolio.</dd>
+                        </div>
+
+                        <div class="relative bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                            <dt>
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-amber-600 text-white">
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </div>
+                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Proprietary Sourcing Edge</p>
+                            </dt>
+                            <dd class="mt-2 ml-16 text-base text-gray-500">Our generational presence and deep network enable us to consistently secure off-market opportunities, acquiring properties at attractive bases before they reach the wider market.</dd>
+                        </div>
+
+                        <div class="relative bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                            <dt>
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-amber-600 text-white">
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                </div>
+                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Value-Creation Focus</p>
+                            </dt>
+                            <dd class="mt-2 ml-16 text-base text-gray-500">Our expertise lies in ground-up development, adaptive reuse, and strategic repositioning, allowing us to transform undervalued assets into highly profitable, iconic properties.</dd>
+                        </div>
+
+                        <div class="relative bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                            <dt>
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-amber-600 text-white">
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>
+                                </div>
+                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Fully Aligned Interests</p>
+                            </dt>
+                            <dd class="mt-2 ml-16 text-base text-gray-500">PMD's compensation is built into each deal model, and we co-invest by taking ownership stakes alongside Prime Manhattan Development. This ensures our interests are one and the same: maximizing project returns.</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 3: Helmsley Building High-Level Overview -->
+        <section id="helmsley-overview" class="slide-section bg-F8F7F4">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">The Helmsley Building: High-Level Opportunity</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">A concise overview of the key investment highlights for this iconic redevelopment.</p>
+                </div>
+                <div id="helmsley-overview-details" class="mt-16 w-full max-w-4xl mx-auto bg-white rounded-lg overflow-hidden card-shadow p-8">
+                    <!-- High-level Helmsley details will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 4: Helmsley Building Detailed Analysis -->
+        <section id="helmsley-detailed" class="slide-section bg-white">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">The Helmsley Building: Detailed Analysis</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">Dive deeper into the specifics of this transformative project.</p>
+                </div>
+                <div id="helmsley-project-details" class="mt-16 w-full max-w-3xl mx-auto bg-white rounded-lg overflow-hidden card-shadow p-8">
+                    <!-- Helmsley project details will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 5: Track Record Projects Section -->
+        <section id="track-record-projects" class="slide-section bg-white">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Track Record: Proven Success</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">Review our history of successfully delivering high-value projects, demonstrating our expertise and consistent performance.</p>
+                </div>
+                <div id="track-record-grid" class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Track Record project cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Slide 6: Gallery Section -->
+        <section id="gallery" class="slide-section bg-F8F7F4">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Gallery: A Visual Tour</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">Explore the iconic architecture, luxurious interiors, and vibrant surroundings of the Helmsley Building.</p>
+                </div>
+                <div id="gallery-grid" class="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Gallery images will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 7: Team Section -->
+        <section id="team" class="slide-section bg-white">
+            <div class="slide-content-container">
+                <div class="text-center">
+                     <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">An Integrated Leadership Team</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">Generational real estate insight meets world-class construction expertise.</p>
+                </div>
+                <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
+                    <div class="text-center">
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover" src="https://static.wixstatic.com/media/f9e890_3777298b579b46a894c9eb0bad1de2a8~mv2.jpg/v1/crop/x_0,y_0,w_264,h_264/fill/w_202,h_202,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Screen%20Shot%202019-11-21%20at%203_30_edited_jp.jpg" alt="Grant Shapolsky" onerror="this.onerror=null; this.src='https://placehold.co/256x256/E9D8B4/333333?text=GS';">
+                        <h3 class="mt-6 text-xl font-bold text-gray-900">Grant Shapolsky</h3>
+                        <p class="text-amber-600 font-semibold">Founder, Managing Director</p>
+                        <p class="mt-2 text-gray-600">A third-generation investor with 30 years of experience, Grant has spearheaded the acquisition and development of over two million square feet in prime Manhattan. His expertise in identifying undervalued assets and navigating complex deals is a core advantage for PMD.</p>
+                    </div>
+                    <div class="text-center">
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover" src="https://commercialobserver.com/wp-content/uploads/sites/3/2017/10/20170927-_dsc8202-edit.jpg?quality=80&w=763&h=489&crop=1" alt="Anthony Rinaldi" onerror="this.onerror=null; this.src='https://placehold.co/256x256/6B7280/FFFFFF?text=AR';">
+                        <h3 class="mt-6 text-xl font-bold text-gray-900">Anthony Rinaldi</h3>
+                        <p class="text-amber-600 font-semibold">Head of Construction, The Rinaldi Group</p>
+                        <p class="mt-2 text-gray-600">With over 30 years in construction, Anthony leads the award-winning Rinaldi Group. His portfolio includes over $2.1 billion in contract value on some of New York's most prestigious projects, ensuring unparalleled execution and quality control for every PMD development.</p>
+                    </div>
+                    <div class="text-center md:col-span-2">
+                        <img class="mx-auto h-28 w-28 rounded-full object-cover" src="https://realestatenetworkny.com/wp-content/uploads/2024/02/Ace-Jonas-768x768.jpg.webp" alt="Ace Jonas" onerror="this.onerror=null; this.src='https://placehold.co/256x256/D1C4E9/4A148C?text=AJ';">
+                        <h3 class="mt-6 text-xl font-bold text-gray-900">Ace Jonas</h3>
+                        <p class="mt-2 text-gray-600">Partner, Backcountry Capital</p>
+                        <p class="mt-2 text-gray-600">Ace Jonas of Backcountry Capital partners with Grant and PMD, bringing additional strategic insight and financial acumen to the team's integrated approach.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 8: NYC Market Opportunity Section -->
+        <section id="nyc-market" class="slide-section bg-F8F7F4">
+            <div class="slide-content-container">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">New York City Market Opportunity</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">New York City's real estate market remains a global beacon of stability and opportunity, characterized by high barriers to entry and consistent demand drivers.</p>
+                </div>
+                <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
+                    <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900">Resilient Demand</h3>
+                        <p class="mt-4 text-lg text-gray-600">Despite economic fluctuations, New York City continues to attract a robust influx of high-net-worth individuals, global corporations, and diverse talent, sustaining demand for luxury residential, prime office, and vibrant retail spaces.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900">Limited Supply & Value Appreciation</h3>
+                        <p class="mt-4 text-lg text-gray-600">Manhattan's finite land supply and stringent zoning regulations create inherent value appreciation, ensuring that well-executed developments command premium pricing. Our strategic focus allows us to capitalize on this scarcity.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
+                        <h3 class="2xl font-bold text-gray-900">Strategic Growth Areas</h3>
+                        <p class="mt-4 text-lg text-gray-600">Specific submarkets continue to experience significant growth and transformation, offering opportunities for repositioning and new development that cater to evolving tenant and resident preferences (e.g., modern office spaces, amenity-rich residential buildings).</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-lg card-shadow border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900">Flight to Quality</h3>
+                        <p class="mt-4 text-lg text-gray-600">In uncertain times, capital tends to flow towards high-quality, well-located assets. PMD's expertise in this segment ensures that our projects meet the highest standards, attracting discerning investors and tenants.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 9: Contact Section -->
+        <section id="contact" class="slide-section">
+            <div class="slide-content-container">
+                <div class="bg-amber-700/90 rounded-2xl p-8 md:p-12 lg:p-16 text-center">
+                    <h2 class="text-3xl font-extrabold text-white">Partner with Prime Manhattan Development</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-amber-100">Let's discuss how Prime Manhattan Development can align with your investment objectives.</p>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-white max-w-3xl mx-auto">
+                        <div class="bg-white/10 p-6 rounded-lg">
+                           <h3 class="lg font-bold">Grant Shapolsky</h3>
+                           <p>Founder, Managing Director</p>
+                           <a href="mailto:grant@primemanhattadnev.com" class="mt-2 inline-block text-amber-200 hover:text-white">grant@primemanhattadnev.com</a>
+                           <p class="mt-1">T: +1 917-887-1309</p>
+                        </div>
+                        <div class="bg-white/10 p-6 rounded-lg">
+                           <h3 class="lg font-bold">Ace Jonas</h3>
+                           <p>Partner, Backcountry Capital</p>
+                           <a href="mailto:ace@acejonas.com" class="mt-2 inline-block text-amber-200 hover:text-white">ace@acejonas.com</a>
+                           <p class="mt-1">T: 516.319.7846</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Slide Navigation Controls -->
+    <div class="fixed bottom-4 left-0 right-0 flex justify-center space-x-4 z-50">
+        <button id="prev-slide" class="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">❮ Previous</button>
+        <button id="next-slide" class="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Next ❯</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="project-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div id="modal-content" class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto transform scale-95">
+            <!-- Modal content will be dynamically inserted here -->
+        </div>
+    </div>
+
+
+    <script>
+        const portfolioData = {
+            helmsley: {
+                id: 'helmsley',
+                name: "The Helmsley Building Redevelopment",
+                location: "230 Park Avenue, New York, NY",
+                category: "Office Repositioning & Mixed-Use",
+                overviewImageUrl: "https://i.pinimg.com/736x/7f/d2/41/7fd2413fb6a4be65119ab9dcde04465a.jpg", // Overview image
+                detailedImageUrl: "https://230parkavenue.com/wp-content/uploads/sites/17/2025/05/230-Park-Helmsley-Bldng.png", // Detailed image
+                videoUrl: "https://player.vimeo.com/video/1082337586?autoplay=1&playsinline=1&color&autopause=0&loop=1&muted=1&title=0&portrait=0&byline=0#t=", // Added video URL
+                description: "A transformative project to reposition the iconic Helmsley Building into a modern, amenity-rich mixed-use complex, totaling approximately 1,200,000 square feet.",
+                spaceAllocation: [
+                    { type: "Ultra-Luxury High-End Branded Condos", grossSqft: 300000, netSellable: 261450, pricePsf: 5000, totalValue: 1307250000 },
+                    { type: "High-End Residential Rentals", grossSqft: 550000, netSellable: 479325, rentPsf: 150, expenseRatio: 35, annualRent: 46734188, capRate: 5.0, totalValue: 934683750 },
+                    { type: "Corporate Leased Residential Rentals", grossSqft: 280000, netSellable: 244020, rentPsf: 200, expenseRatio: 27, annualRent: 35626920, capRate: 7.0, totalValue: 508956000 },
+                    { type: "Retail", grossSqft: 20000, netSellable: 17400, rentPsf: 150, expenseRatio: 0, annualRent: 1908585, capRate: 7.0, totalValue: 27265500 },
+                    { type: "Amenity Space", grossSqft: 50000, netSellable: 50000 }
+                ],
+                projectCosts: {
+                    acquisitionPrice: 530000000,
+                    hardCosts: 631578947,
+                    softCosts: 158722240,
+                    financingCosts: 209627346,
+                    totalProjectCost: 1529928534,
+                    equity: 350409906,
+                    debt: 994453547,
+                    netCondoSales: 1228815000
+                },
+                phasedDevelopment: {
+                    phase1: {
+                        duration: "Months 1-36",
+                        description: "Development of 100,000 square feet of ultra-luxury high-end branded condos.",
+                        remainingDebt: 90000000,
+                        remainingSF: 1100000
+                    },
+                    phase2: {
+                        duration: "Months 24-48",
+                        description: "Completion of the remaining building development, including all residential rentals, retail, and amenity spaces."
+                    }
+                },
+                financials: {
+                    irr: 18.39, // Levered IRR from image_1318a3.png
+                    multiple: 3.34, // Levered Multiple from image_1318a3.png
+                    unleveredIRR: 15.80, // Unlevered IRR from image_1318a3.png
+                    unleveredMultiple: 2.01, // Unlevered Multiple from image_1318a3.png
+                    investedCapital: 1326.54, // Approx. $1,326,539,624 from image_1318a3.png, simplified to millions
+                    totalReturns: 4008.16, // Approx. $4,008,158,586 from image_1318a3.png, simplified to millions
+                    roi: (4008.16 / 1326.54 - 1) * 100 // Calculated ROI
+                }
+            },
+            trackRecord: [
+                {
+                    id: 'mandarin',
+                    name: "The Mandarin Oriental Residences",
+                    location: "685 Fifth Avenue, New York, NY",
+                    category: "Ultra-Luxury Conversion",
+                    imageUrl: "https://blocksandlots.com/wp-content/uploads/2021/10/mandarin-oriental-residences-5th-ave-condo-785x1024.jpg",
+                    description: "A 30-story ultra-luxurious hotel residence, converted from an existing 24-story residential building. Involved the structural demolition of the top 4 floors and adding 10 new stories, while retail remained operational below.",
+                    keyAchievements: "Award-winning project recognized for excellence in construction. Units selling for over $6,000/SF. Demonstrated complex structural engineering and operational management.",
+                    value: "Approx. $98.6 Million"
+                },
+                {
+                    id: 'radio',
+                    name: "The Radio Hotel",
+                    location: "2420 Amsterdam Avenue, New York, NY",
+                    category: "Mixed-Use Development",
+                    imageUrl: "https://tdr.aaa.com/tdr-images/images/property_photo/accommodation/282176H1.jpg",
+                    description: "A 24-story mixed-use structure featuring Class A office space, hotel guestrooms, retail, and a restaurant. Stands at 459-ft, one of the highest elevations in Manhattan.",
+                    keyAchievements: "Award-winning architecture and design, recognized as one of the Top 10 Architecture Design Projects of 2022 by Dezeen Magazine. Showcases expertise in large-scale mixed-use development.",
+                    value: "Approx. $103 Million"
+                },
+                {
+                    id: 'hilton',
+                    name: "The Central at 5th Hilton Club",
+                    location: "12 East 48th Street, New York, NY",
+                    category: "Hospitality Development",
+                    imageUrl: "https://newyorkyimby.com/wp-content/uploads/2021/05/image00013-Copy-777x583.jpeg",
+                    description: "A 31-story new ground-up extended-stay hotel tower with 161 guestrooms, featuring a distinctive metallic facade and high-end amenities.",
+                    keyAchievements: "Awarded for Commercial Hotels Excellence in Construction. Demonstrated ability to deliver sophisticated hospitality projects in prime Midtown locations.",
+                    value: "Approx. $67 Million"
+                },
+                {
+                    id: 'kenmare',
+                    name: "75 Kenmare Street",
+                    location: "New York, NY",
+                    category: "Luxury Condominium",
+                    imageUrl: "https://rinaldinyc.com/wp-content/uploads/2020/08/75ken-1-1200x800.jpg",
+                    description: "A 7-story new ground-up ultra-high-end luxury condominium building with 35 units and a state-of-the-art automated underground parking system.",
+                    keyAchievements: "Received 18 different design and building awards, including the BLT Built Design Award. Showcased innovative construction techniques and luxury design.",
+                    value: "Undisclosed"
+                }
+            ],
+            galleryImages: [
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_07.jpg", alt: "Helmsley Building Interior", caption: "Step into unparalleled luxury. Our meticulously designed interiors blend historic grandeur with modern sophistication, offering an exclusive experience for discerning tenants and maximizing long-term asset value." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_015.jpg", alt: "Helmsley Building Office Space", caption: "Flexible and future-ready workspaces. Designed to foster collaboration and productivity, these premium environments attract top-tier corporate tenants, ensuring stable and growing rental income, and solidifying the building's enduring legacy." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530-Fifth-Neighborhood-Image-1.jpg", alt: "Grand Central Proximity", caption: "Unrivaled connectivity at Grand Central. Positioned in the vibrant heart of Midtown, offering seamless access to transportation, top-tier dining, and world-class retail – a prime, historic location driving consistent demand and property appreciation, making it an irreplaceable asset." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_09.jpg", alt: "Manhattan's Premier District", caption: "Immerse yourself in Manhattan's premier district. Surrounded by iconic landmarks and high-end retail, the Helmsley Building offers an address of undeniable prestige, commanding premium rents and attracting a high-caliber tenant base, a true piece of history at the center of Park Avenue." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_08.jpg", alt: "Urban Green Spaces", caption: "Beyond the office: green spaces and vibrant culture. Enjoy the perfect balance of urban dynamism with serene escapes just steps away, enhancing tenant satisfaction and the building's overall appeal and enduring value as a generational asset." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_amenities-1024x934.jpg", alt: "Exclusive Amenities", caption: "Exclusive amenities designed for success. From executive lounges to state-of-the-art fitness centers, every detail enhances the tenant experience and strengthens the building's competitive edge, ensuring high occupancy and strong returns, solidifying its position as a premier investment." }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide-section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const prevBtn = document.getElementById('prev-slide');
+            const nextBtn = document.getElementById('next-slide');
+            let currentSlideIndex = 0;
+
+            const helmsleyOverviewDiv = document.getElementById('helmsley-overview-details');
+            const helmsleyDetailedDiv = document.getElementById('helmsley-project-details');
+            const trackRecordGrid = document.getElementById('track-record-grid');
+            const galleryGrid = document.getElementById('gallery-grid');
+            const modal = document.getElementById('project-modal');
+            const modalContent = document.getElementById('modal-content');
+
+            const showSlide = (index) => {
+                slides.forEach((slide, i) => {
+                    slide.classList.remove('active');
+                    if (i === index) {
+                        slide.classList.add('active');
+                        slide.scrollTop = 0; // Reset scroll position for the new slide
+                    }
+                });
+                navLinks.forEach((link, i) => {
+                    link.classList.remove('active');
+                    if (parseInt(link.dataset.slideIndex) === index) {
+                        link.classList.add('active');
+                    }
+                });
+
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === slides.length - 1;
+
+                if (index === 0) {
+                    const legacyEl = document.getElementById('stat-legacy');
+                    const fundSizeEl = document.getElementById('stat-fund-size');
+                    const portfolioValueEl = document.getElementById('stat-portfolio-value');
+                    animateStat(legacyEl, 115, 1500);
+                    animateStat(fundSizeEl, 50, 1500, 'M');
+                    animateStat(portfolioValueEl, 2, 1500, '.1B+');
+                }
+                // Render specific project details when their slides are active
+                if (index === 3) { // Helmsley Overview slide
+                    renderHelmsleyOverview(helmsleyOverviewDiv, portfolioData.helmsley);
+                } else if (index === 4) { // Helmsley Detailed slide
+                    renderHelmsleyDetailed(helmsleyDetailedDiv, portfolioData.helmsley);
+                } else if (index === 5) { // Track Record Projects slide
+                    renderTrackRecord(trackRecordGrid, portfolioData.trackRecord);
+                } else if (index === 6) { // Gallery slide
+                    renderGallery(galleryGrid, portfolioData.galleryImages);
+                }
+            };
+
+            const goToNextSlide = () => {
+                if (currentSlideIndex < slides.length - 1) {
+                    currentSlideIndex++;
+                    showSlide(currentSlideIndex);
+                }
+            };
+
+            const goToPrevSlide = () => {
+                if (currentSlideIndex > 0) {
+                    currentSlideIndex--;
+                    showSlide(currentSlideIndex);
+                }
+            };
+
+            prevBtn.addEventListener('click', goToPrevSlide);
+            nextBtn.addEventListener('click', goToNextSlide);
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const index = parseInt(e.target.dataset.slideIndex);
+                    currentSlideIndex = index;
+                    showSlide(currentSlideIndex);
+                });
+            });
+
+            const renderHelmsleyOverview = (targetDiv, project) => {
+                if (!targetDiv || !project) {
+                    return;
+                }
+                targetDiv.innerHTML = `
+                    <div class="h-64 md:h-80 bg-cover bg-center rounded-lg mb-6 helmsley-overview-image-display" style="background-image: url('${project.overviewImageUrl}');"></div>
+                    <p class="text-sm font-semibold text-amber-600 uppercase">${project.category}</p>
+                    <h3 class="mt-2 text-2xl font-bold text-gray-900">${project.name}</h3>
+                    <p class="mt-1 text-gray-500">${project.location}</p>
+                    <p class="mt-4 text-lg text-gray-700">
+                        The Helmsley Building stands as an **irreplaceable generational asset** at the heart of Park Avenue, a historic and iconic location. This is more than just a redevelopment; it's an opportunity to invest in a piece of Manhattan's enduring legacy, offering unparalleled prestige and long-term value for future buyers and our team.
+                    </p>
+                    <div class="mt-6 border-t pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+                        <div class="p-4 bg-gray-50 rounded-lg text-center">
+                            <div id="overview-acquisition-price" class="text-3xl font-bold text-amber-700"></div>
+                            <p class="mt-1 text-sm text-gray-500 font-medium">Acquisition Price</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg text-center">
+                            <div id="overview-total-cost" class="text-3xl font-bold text-amber-700"></div>
+                            <p class="mt-1 text-sm text-gray-500 font-medium">Total Project Cost</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg text-center">
+                            <div id="overview-levered-irr" class="text-3xl font-bold text-amber-700"></div>
+                            <p class="mt-1 text-sm text-gray-500 font-medium">Levered IRR</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg text-center">
+                            <div id="overview-levered-multiple" class="text-3xl font-bold text-amber-700"></div>
+                            <p class="mt-1 text-sm text-gray-500 font-medium">Levered Multiple</p>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-3 mt-6">
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Project Scope</h4>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                <li>Total SF: <span class="font-semibold">${(project.spaceAllocation.reduce((sum, item) => sum + item.grossSqft, 0) / 1000000).toFixed(2)}M sqft</span></li>
+                                <li>Ultra-Luxury Condos: <span class="font-semibold">${(project.spaceAllocation[0].grossSqft / 1000).toLocaleString()}K sqft</span></li>
+                                <li>High-End Residential Rentals: <span class="font-semibold">${(project.spaceAllocation[1].grossSqft / 1000).toLocaleString()}K sqft</span></li>
+                                <li>Corporate Leased Rentals: <span class="font-semibold">${(project.spaceAllocation[2].grossSqft / 1000).toLocaleString()}K sqft</span></li>
+                                <li>Retail: <span class="font-semibold">${(project.spaceAllocation[3].grossSqft / 1000).toLocaleString()}K sqft</span></li>
+                                <li>Amenity Space: <span class="font-semibold">${(project.spaceAllocation[4].grossSqft / 1000).toLocaleString()}K sqft</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-6 border-t pt-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">Phased Approach Summary</h4>
+                        <p class="text-gray-600">The project is structured in two phases. Phase One focuses on the initial condo development (Months 1-36), followed by Phase Two (Months 24-48) for the remaining building completion. This strategy optimizes capital deployment and value realization.</p>
+                    </div>
+                `;
+                // Animate stats for overview
+                animateStat(document.getElementById('overview-acquisition-price'), project.projectCosts.acquisitionPrice / 1000000, 1000, 'M', '$');
+                animateStat(document.getElementById('overview-total-cost'), project.projectCosts.totalProjectCost / 1000000, 1000, 'M', '$');
+                animateStat(document.getElementById('overview-levered-irr'), project.financials.irr, 1000, '%');
+                animateStat(document.getElementById('overview-levered-multiple'), project.financials.multiple, 1000, 'x');
+            };
+
+            const renderHelmsleyDetailed = (targetDiv, project) => {
+                if (!targetDiv || !project) {
+                    return;
+                }
+
+                let spaceAllocationHtml = project.spaceAllocation.map(item => `
+                    <li class="text-gray-600 mb-1">
+                        <span class="font-semibold">${item.grossSqft.toLocaleString()} sqft</span> of ${item.type}
+                        ${item.pricePsf ? ` ($${item.pricePsf.toLocaleString()}/sqft)` : ''}
+                        ${item.rentPsf ? ` ($${item.rentPsf.toLocaleString()}/sqft rent)` : ''}
+                    </li>
+                `).join('');
+
+                let projectCostsHtml = `
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>Acquisition Price: <span class="font-semibold">$${(project.projectCosts.acquisitionPrice / 1000000).toLocaleString()}M</span></li>
+                        <li>Hard Costs: <span class="font-semibold">$${(project.projectCosts.hardCosts / 1000000).toLocaleString()}M</span></li>
+                        <li>Soft Costs: <span class="font-semibold">$${(project.projectCosts.softCosts / 1000000).toLocaleString()}M</span></li>
+                        <li>Financing Costs: <span class="font-semibold">$${(project.projectCosts.financingCosts / 1000000).toLocaleString()}M</span></li>
+                        <li>Total Project Cost: <span class="font-bold text-gray-800">$${(project.projectCosts.totalProjectCost / 1000000).toLocaleString()}M</span></li>
+                        <li>Equity Invested: <span class="font-semibold">$${(project.projectCosts.equity / 1000000).toLocaleString()}M</span></li>
+                        <li>Debt Financing: <span class="font-semibold">$${(project.projectCosts.debt / 1000000).toLocaleString()}M</span></li>
+                        <li>Net Condo Sales: <span class="font-semibold">$${(project.projectCosts.netCondoSales / 1000000).toLocaleString()}M</span></li>
+                    </ul>
+                `;
+
+                targetDiv.innerHTML = `
+                    <div class="h-64 md:h-80 bg-cover bg-center rounded-lg mb-6 helmsley-detailed-image-display" style="background-image: url('${project.detailedImageUrl}');"></div>
+                    <div class="video-container">
+                        <iframe src="${project.videoUrl}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <p class="text-sm font-semibold text-amber-600 uppercase">${project.category}</p>
+                    <h3 class="mt-2 text-2xl font-bold text-gray-900">${project.name}</h3>
+                    <p class="mt-1 text-gray-500">${project.location}</p>
+                    <div class="mt-6 border-t pt-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Project Overview</h4>
+                            <p class="text-gray-600">${project.description}</p>
+                            <div class="mt-4">
+                                <h5 class="text-md font-bold text-gray-800 mb-2">Detailed Space Allocation:</h5>
+                                <ul class="list-disc list-inside">
+                                    ${spaceAllocationHtml}
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Detailed Project Costs Summary</h4>
+                            ${projectCostsHtml}
+                        </div>
+                    </div>
+                    <div class="mt-6 border-t pt-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">Phased Development Strategy</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h5 class="text-md font-bold text-gray-800">Phase One (${project.phasedDevelopment.phase1.duration})</h5>
+                                <p class="text-gray-600">${project.phasedDevelopment.phase1.description}</p>
+                                <ul class="list-disc list-inside text-gray-600 mt-2">
+                                    <li>Remaining Debt after Phase One: <span class="font-semibold">$${(project.phasedDevelopment.phase1.remainingDebt / 1000000).toLocaleString()}M</span></li>
+                                    <li>Remaining SF for Development: <span class="font-semibold">${(project.phasedDevelopment.phase1.remainingSF / 1000000).toLocaleString()}M sqft</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h5 class="text-md font-bold text-gray-800">Phase Two (${project.phasedDevelopment.phase2.duration})</h5>
+                                <p class="text-gray-600">${project.phasedDevelopment.phase2.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 border-t pt-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">Projected Financials</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                <div class="text-3xl font-bold text-amber-700">${project.financials.irr}%</div>
+                                <p class="text-sm text-gray-500 font-medium">Levered IRR</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                <div class="text-3xl font-bold text-amber-700">${project.financials.multiple}x</div>
+                                <p class="text-sm text-gray-500 font-medium">Levered Multiple</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredIRR}%</div>
+                                <p class="text-sm text-gray-500 font-medium">Unlevered IRR</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredMultiple}x</div>
+                                <p class="text-sm text-gray-500 font-medium">Unlevered Multiple</p>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h5 class="text-md font-bold text-gray-800 mb-2">Capital Invested vs. Total Returns</h5>
+                            <div class="chart-container"><canvas id="financialChart-${project.id}"></canvas></div>
+                        </div>
+                    </div>
+                `;
+                renderChart(project);
+            };
+
+            const createCard = (project) => {
+                const card = document.createElement('div');
+                card.className = 'portfolio-card bg-white rounded-lg overflow-hidden card-shadow transition-all duration-300 transform hover:-translate-y-1 cursor-pointer relative z-10'; /* Added relative z-10 */
+                card.dataset.id = project.id;
+                card.dataset.type = project.financials ? 'pipeline' : 'trackRecord';
+
+                card.innerHTML = `
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('${project.imageUrl}')"></div>
+                    <div class="p-6">
+                        <p class="text-sm font-semibold text-amber-600 uppercase">${project.category}</p>
+                        <h3 class="mt-2 text-xl font-bold text-gray-900">${project.name}</h3>
+                        <p class="mt-1 text-gray-500">${project.location}</p>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    openModal(project, 'project');
+                });
+                return card;
+            };
+
+            const renderTrackRecord = (targetGrid, projects) => {
+                if (!targetGrid) {
+                    return;
+                }
+                targetGrid.innerHTML = ''; // Clear previous content
+                projects.forEach(project => {
+                    targetGrid.appendChild(createCard(project));
+                });
+            };
+
+            const renderGallery = (targetGrid, images) => {
+                if (!targetGrid) {
+                    return;
+                }
+                targetGrid.innerHTML = ''; // Clear previous content
+                images.forEach(image => {
+                    const imgDiv = document.createElement('div');
+                    imgDiv.className = 'gallery-item-wrapper bg-white rounded-lg overflow-hidden card-shadow p-2';
+                    imgDiv.innerHTML = `<img src="${image.src}" alt="${image.alt}" class="gallery-image">`;
+                    // Correctly attach the event listener to the imgDiv
+                    imgDiv.addEventListener('click', () => {
+                        openModal(image, 'gallery');
+                    });
+                    targetGrid.appendChild(imgDiv);
+                });
+            };
+            
+            const openModal = (data, type) => {
+                let modalInnerHtml = '';
+                if (type === 'project') {
+                    // This logic is for Track Record projects
+                    let financialContent = '';
+                    if (data.financials) {
+                        financialContent = `
+                            <h4 class="text-lg font-bold text-gray-800 mt-6 mb-4">Projected Financials</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                ${data.financials.irr ? `
+                                <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                    <div class="text-3xl font-bold text-amber-700">${data.financials.irr}%</div>
+                                    <p class="text-sm text-gray-500 font-medium">Projected IRR</p>
+                                </div>` : ''}
+                                ${data.financials.multiple ? `
+                                 <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                    <div class="text-3xl font-bold text-amber-700">${data.financials.multiple}x</div>
+                                    <p class="text-sm text-gray-500 font-medium">Projected Multiple</p>
+                                </div>` : ''}
+                                 ${data.financials.roi ? `
+                                <div class="bg-gray-50 p-4 rounded-lg text-center">
+                                    <div class="text-3xl font-bold text-amber-700">${data.financials.roi}%</div>
+                                    <p class="text-sm text-gray-500 font-medium">Projected ROI</p>
+                                </div>` : ''}
+                            </div>
+                            <div class="mt-6">
+                                <div class="chart-container"><canvas id="financialChart-${data.id}"></canvas></div>
+                            </div>
+                        `;
+                    } else if (data.value) {
+                         financialContent = `
+                            <h4 class="text-lg font-bold text-gray-800 mt-6 mb-4">Project Value</h4>
+                            <div class="bg-gray-50 p-6 rounded-lg text-center">
+                                <div class="text-4xl font-bold text-amber-700">${data.value}</div>
+                                 <p class="text-sm text-gray-500 font-medium mt-1">Estimated Value</p>
+                            </div>
+                         `;
+                    }
+                    modalInnerHtml = `
+                        <div class="p-6 md:p-8">
+                            <div class="flex justify-between items-start">
+                                 <div>
+                                    <p class="text-base font-semibold text-amber-600 uppercase">${data.category}</p>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">${data.name}</h3>
+                                    <p class="text-gray-500 mt-1">${data.location}</p>
+                                </div>
+                                <button id="close-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+                            </div>
+                            <div class="mt-6 border-t pt-6">
+                                <h4 class="text-lg font-bold text-gray-800 mb-2">${data.financials ? 'Description' : 'Project Summary'}</h4>
+                                <p class="text-gray-600">${data.description}</p>
+                                <h4 class="text-lg font-bold text-gray-800 mt-4 mb-2">${data.financials ? 'Investment Thesis' : 'Key Achievements'}</h4>
+                                <p class="text-gray-600">${data.investmentThesis || data.keyAchievements}</p>
+                                ${financialContent}
+                            </div>
+                        </div>
+                    `;
+                } else if (type === 'gallery') {
+                    modalInnerHtml = `
+                        <div class="p-6 md:p-8">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">${data.alt}</h3>
+                                </div>
+                                <button id="close-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+                            </div>
+                            <div class="mt-6 border-t pt-6 text-center">
+                                <img src="${data.src}" alt="${data.alt}" class="max-w-full h-auto rounded-lg mx-auto mb-4">
+                                <p class="text-gray-700 text-lg">${data.caption}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                modalContent.innerHTML = modalInnerHtml;
+                // Ensure modal is visible and transitions correctly
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modalContent.classList.remove('scale-95');
+                }, 10);
+                
+                if(type === 'project' && data.financials) {
+                    renderChart(data); // Render chart only for project modals with financial data
+                }
+
+                document.getElementById('close-modal').addEventListener('click', closeModal);
+            };
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 250);
+            };
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            const renderChart = (project) => {
+                const ctx = document.getElementById(`financialChart-${project.id}`).getContext('2d');
+                if (!ctx) return;
+                
+                let chartData;
+                let chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y) + 'M';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                     scales: {
+                        y: {
+                            beginAtZero: true,
+                             ticks: {
+                                callback: function(value) {
+                                    return '$' + value + 'M';
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                // Use investedCapital and totalReturns for the chart
+                if (project.financials.investedCapital && project.financials.totalReturns) {
+                    chartData = {
+                        labels: ['Invested Capital', 'Total Returns'],
+                        datasets: [{
+                            label: 'Value',
+                            data: [project.financials.investedCapital, project.financials.totalReturns],
+                            backgroundColor: ['#FBBF24', '#B45309'],
+                            borderColor: ['#FBBF24', '#B45309'],
+                            borderWidth: 1
+                        }]
+                    };
+                } else if (project.financials.initialInvestment && project.financials.projectedReturn) {
+                    // Fallback to older fields if new ones are not present
+                    chartData = {
+                        labels: ['Initial Investment', 'Projected Return'],
+                        datasets: [{
+                            label: 'Value',
+                            data: [project.financials.initialInvestment, project.financials.projectedReturn],
+                            backgroundColor: ['#FBBF24', '#B45309'],
+                            borderColor: ['#FBBF24', '#B45309'],
+                            borderWidth: 1
+                        }]
+                    };
+                }
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: chartOptions
+                });
+            };
+
+            const animateStat = (element, target, duration, suffix = '', prefix = '') => {
+                let current = 0;
+                const increment = target / (duration / 10); // Calculate increment per 10ms
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    if (element) {
+                        if (suffix === '%') {
+                            element.innerHTML = prefix + Math.round(current) + suffix;
+                        } else if (suffix === 'x') {
+                             element.innerHTML = prefix + current.toFixed(2) + suffix;
+                        }
+                        else {
+                            element.innerHTML = prefix + current.toLocaleString(undefined, { maximumFractionDigits: 0 }) + suffix;
+                        }
+                    }
+                }, 10); // Update every 10ms for smoother animation
+            };
+
+            // Initial setup
+            showSlide(currentSlideIndex);
+        });
+    </script>
+</body>
+</html>
