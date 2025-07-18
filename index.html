@@ -27,6 +27,7 @@
             color: #1A202C;
             display: flex;
             flex-direction: column;
+            min-height: 100vh; /* Ensure body takes full viewport height */
         }
         .nav-link.active {
             color: #D69E2E;
@@ -63,9 +64,10 @@
             flex-grow: 1; /* Allows section to fill available space */
             overflow-y: auto; /* Enable scrolling for content within the slide */
             padding-top: 2rem; /* Consistent top padding for content */
-            padding-bottom: 2rem; /* Consistent bottom padding for content */
+            padding-bottom: 5rem; /* Increased bottom padding for content above nav buttons */
             box-sizing: border-box;
             width: 100%;
+            min-height: 100%; /* Ensure slide takes full height */
         }
         .slide-section.active {
             display: flex; /* Show active slide as flex column */
@@ -317,7 +319,7 @@
         </div>
     </header>
 
-    <main class="flex-grow flex flex-col">
+    <main class="flex-grow flex flex-col min-h-full">
         <!-- Slide 0: Hero Section -->
         <section id="hero" class="slide-section active relative bg-white overflow-hidden">
             <img src="https://static.wixstatic.com/media/f9e890_e47207366be94aae971237b95d82ae83~mv2.jpg/v1/crop/x_15,y_33,w_1163,h_479/fill/w_1163,h_477,al_c,q_85,enc_avif,quality_auto/shutterstock_682562731_edited.jpg" alt="New York City Skyline" class="absolute inset-0 w-full h-full object-cover opacity-30">
