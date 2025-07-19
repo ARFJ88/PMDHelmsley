@@ -714,6 +714,14 @@
                     keyAchievements: "Received 18 different design and building awards, including the BLT Built Design Award. Showcased innovative construction techniques and luxury design.",
                     value: "Undisclosed"
                 }
+            ],
+            galleryImages: [
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_07.jpg", alt: "Helmsley Building Interior", caption: "Step into unparalleled luxury. Our meticulously designed interiors blend historic grandeur with modern sophistication, offering an exclusive experience for discerning tenants and maximizing long-term asset value." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_photo_015.jpg", alt: "Helmsley Building Office Space", caption: "Flexible and future-ready workspaces. Designed to foster collaboration and productivity, these premium environments attract top-tier corporate tenants, ensuring stable and growing rental income, and solidifying the building's enduring legacy." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530-Fifth-Neighborhood-Image-1.jpg", alt: "Grand Central Proximity", caption: "Unrivaled connectivity at Grand Central. Positioned in the vibrant heart of Midtown, offering seamless access to transportation, top-tier dining, and world-class retail – a prime, historic location driving consistent demand and property appreciation, making it an irreplaceable asset." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_09.jpg", alt: "Manhattan's Premier District", caption: "Immerse yourself in Manhattan's premier district. Surrounded by iconic landmarks and high-end retail, the Helmsley Building offers an address of undeniable prestige, commanding premium rents and attracting a high-caliber tenant base, a true piece of history at the center of Park Avenue." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/530Fifth_neighborhood_08.jpg", alt: "Urban Green Spaces", caption: "Beyond the office: green spaces and vibrant culture. Enjoy the perfect balance of urban dynamism with serene escapes just steps away, enhancing tenant satisfaction and the building's overall appeal and enduring value as a generational asset." },
+                { src: "https://230parkavenue.com/wp-content/uploads/sites/17/2024/10/230PARK_amenities-1024x934.jpg", alt: "Exclusive Amenities", caption: "Exclusive amenities designed for success. From executive lounges to state-of-the-art fitness centers, every detail enhances the tenant experience and strengthens the building's competitive edge, ensuring high occupancy and strong returns, solidifying its position as a premier investment." }
             ]
         };
 
@@ -724,11 +732,6 @@
             const nextBtn = document.getElementById('next-slide');
             let currentSlideIndex = 0;
 
-            // Moved element selections inside showSlide or just before render calls for robustness
-            // const helmsleyOverviewDiv = document.getElementById('helmsley-overview-details');
-            // const helmsleyDetailedDiv = document.getElementById('helmsley-project-details');
-            // const trackRecordGrid = document.getElementById('track-record-grid');
-            // const galleryGrid = document.getElementById('gallery-grid');
             const modal = document.getElementById('project-modal');
             const modalContent = document.getElementById('modal-content');
 
@@ -768,13 +771,13 @@
 
                 // Render specific project details when their slides are active
                 if (index === 3) { // Helmsley Overview slide
-                    renderHelmsleyOverview(helmsleyOverviewDiv, portfolioData.helmsley);
+                    if (helmsleyOverviewDiv) renderHelmsleyOverview(helmsleyOverviewDiv, portfolioData.helmsley);
                 } else if (index === 4) { // Helmsley Detailed slide
-                    renderHelmsleyDetailed(helmsleyDetailedDiv, portfolioData.helmsley);
+                    if (helmsleyDetailedDiv) renderHelmsleyDetailed(helmsleyDetailedDiv, portfolioData.helmsley);
                 } else if (index === 5) { // Track Record Projects slide
-                    renderTrackRecord(trackRecordGrid, portfolioData.trackRecord);
+                    if (trackRecordGrid) renderTrackRecord(trackRecordGrid, portfolioData.trackRecord);
                 } else if (index === 6) { // Gallery slide
-                    renderGallery(galleryGrid, portfolioData.galleryImages);
+                    if (galleryGrid) renderGallery(galleryGrid, portfolioData.galleryImages);
                 }
             };
 
@@ -930,19 +933,19 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.irr}%</div>
-                                <p class="text-sm text-gray-500 font-medium">Levered IRR</p>
+                                <p class="mt-1 text-sm text-gray-500 font-medium">Levered IRR</p>
                             </div>
                             <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.multiple}x</div>
-                                <p class="text-sm text-gray-500 font-medium">Levered Multiple</p>
+                                <p class="mt-1 text-sm text-gray-500 font-medium">Levered Multiple</p>
                             </div>
                             <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredIRR}%</div>
-                                <p class="text-sm text-gray-500 font-medium">Unlevered IRR</p>
+                                <p class="mt-1 text-sm text-gray-500 font-medium">Unlevered IRR</p>
                             </div>
                             <div class="p-4 bg-gray-50 rounded-lg text-center">
                                 <div class="text-3xl font-bold text-amber-700">${project.financials.unleveredMultiple}x</div>
-                                <p class="text-sm text-gray-500 font-medium">Unlevered Multiple</p>
+                                <p class="mt-1 text-sm text-gray-500 font-medium">Unlevered Multiple</p>
                             </div>
                         </div>
                         <div class="mt-6">
